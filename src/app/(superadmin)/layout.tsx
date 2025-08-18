@@ -1,14 +1,14 @@
-"use client";
-
 import { ReactNode } from "react";
 import Navbar from "@/components/global/Navbar";
-import withSuperAdminProtection from "@/hoc/withSuperAdminProtection";
+import { protectPage } from "@/utils/supabase/actions";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
-const SuperAdminLayout = ({ children }: LayoutProps) => {
+export default async function SuperAdminLayout({ children }: LayoutProps) {
+  await protectPage(["superadmin"]);
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -17,6 +17,4 @@ const SuperAdminLayout = ({ children }: LayoutProps) => {
       </div>
     </div>
   );
-};
-
-export default withSuperAdminProtection(SuperAdminLayout);
+}

@@ -54,36 +54,48 @@ const LoginForm = () => {
     setError(null); // Reset error state before submission
 
     try {
-      await login(data.email, data.password);
+      // Call the login API directly instead of using Zustand store
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
+      });
 
-      // Ensure the state is updated before accessing roles
-      const roles = useAuthStore.getState().roles;
-      const isAuthenticated = useAuthStore.getState().isAuthenticated;
+      const result = await response.json();
 
-      // Only proceed with redirection if the user is authenticated
-      if (isAuthenticated) {
+      if (response.ok && result.data) {
+        // Login successful - update Zustand store for client-side state
+        await login(data.email, data.password);
+        
         // Check if there's a stored URL in local storage
         const redirectURL = localStorage.getItem("redirectAfterLogin");
 
-        // Role-based redirection logic
         if (redirectURL) {
           // Clear the stored URL after using it
           localStorage.removeItem("redirectAfterLogin");
           router.push(redirectURL);
         } else {
-          // Default role-based redirection
-          if (roles.is_qr_superadmin === 1) {
+          // Use server-side user data for role-based redirection
+          const userMetadata = result.data.user?.user_metadata || {};
+          
+          // Default role-based redirection using server data
+          if (userMetadata.is_qr_superadmin) {
             router.push("/superadmin-portal");
-          } else if (roles.is_qr_admin === 1) {
+          } else if (userMetadata.is_qr_admin) {
             router.push("/admin-portal");
-          } else if (roles.is_qr_member === 1) {
+          } else if (userMetadata.is_qr_member) {
             router.push("/members-portal");
           } else {
             router.push("/"); // Fallback in case no roles match
           }
         }
       } else {
-        setError("Authentication failed. Please try again."); // Set an appropriate error message
+        setError(result.error || "Authentication failed. Please try again.");
       }
     } catch (error: any) {
       console.error("Login error:", error.message);

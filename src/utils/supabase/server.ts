@@ -1,28 +1,47 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { cookies } from "next/headers";
+// src/utils/supabase/server.ts
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
-export function createClient() {
-  const cookieStore = cookies() as unknown as any;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
-  // If running on plain http (e.g., local prod with next start), secure cookies will be dropped by the browser.
-  // Decide secure flag based on protocol in site URL; default to false when unknown.
-  const secure = siteUrl.startsWith('https://');
+export const createClient = () => {
+  const cookieStore = cookies() as any
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || ""
+  const secure = siteUrl.startsWith("https://")
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      cookieOptions: { secure } as CookieOptions,
       cookies: {
-        getAll() {
-          return (cookieStore as any).getAll();
+        get(name: string) {
+          return cookieStore.get(name)?.value
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            (cookieStore as any).set(name, value, options)
-          );
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            // Ensure proper cookie security settings for production
+            const cookieOptions = {
+              ...options,
+              secure,
+              sameSite: 'lax' as const,
+              httpOnly: false, // Supabase needs client access
+            }
+            cookieStore.set({ name, value, ...cookieOptions })
+          } catch (error) {
+            // The `set` method was called from a Server Component.
+          }
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            const cookieOptions = {
+              ...options,
+              secure,
+              sameSite: 'lax' as const,
+            }
+            cookieStore.delete({ name, ...cookieOptions })
+          } catch (error) {
+            // The `delete` method was called from a Server Component.
+          }
         },
       },
     }
-  );
+  )
 }

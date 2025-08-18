@@ -1,15 +1,15 @@
-"use client";
-
 import { ReactNode } from "react";
 import Navbar from "@/components/global/Navbar";
-import withAdminProtection from "@/hoc/withAdminProtection";
 import AdminSidebar from "@/components/layout/AdminSidebar";
+import { protectPage } from "@/utils/supabase/actions";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
-const AdminLayout = ({ children }: LayoutProps) => {
+export default async function AdminLayout({ children }: LayoutProps) {
+  await protectPage(["admin"]);
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -21,6 +21,4 @@ const AdminLayout = ({ children }: LayoutProps) => {
       </section>
     </div>
   );
-};
-
-export default withAdminProtection(AdminLayout);
+}

@@ -1,15 +1,15 @@
-"use client";
-
 import { ReactNode } from "react";
 import Navbar from "@/components/global/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
-import withMemberProtection from "@/hoc/withMemberProtection";
+import { protectPage } from "@/utils/supabase/actions";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
-const MemberLayout = ({ children }: LayoutProps) => {
+export default async function MemberLayout({ children }: LayoutProps) {
+  await protectPage(["member"]);
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -21,6 +21,4 @@ const MemberLayout = ({ children }: LayoutProps) => {
       </section>
     </div>
   );
-};
-
-export default withMemberProtection(MemberLayout);
+}
