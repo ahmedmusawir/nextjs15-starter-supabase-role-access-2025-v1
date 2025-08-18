@@ -17,6 +17,8 @@ const withAdminProtection = (WrappedComponent: ComponentType<LayoutProps>) => {
     const roles = useAuthStore((state) => state.roles);
     const isLoading = useAuthStore((state) => state.isLoading);
 
+    // TEMPORARILY DISABLED FOR RBAC TESTING
+    /*
     useEffect(() => {
       if (!isLoading) {
         if (!isAuthenticated || roles.is_qr_admin !== 1) {
@@ -28,10 +30,14 @@ const withAdminProtection = (WrappedComponent: ComponentType<LayoutProps>) => {
         }
       }
     }, [isAuthenticated, roles, router, isLoading]);
+    */
 
+    // TEMPORARILY DISABLED FOR RBAC TESTING
+    /*
     if (isLoading || !isAuthenticated || roles.is_qr_admin !== 1) {
       return <Spinner />;
     }
+    */
 
     return <WrappedComponent {...props} />;
   };
