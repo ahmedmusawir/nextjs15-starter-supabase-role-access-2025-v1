@@ -10,11 +10,8 @@ interface AuthState {
   };
   isAuthenticated: boolean;
   isLoading: boolean;
-  setIsLoading: (isLoading: boolean) => void;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  setUser: (user: any) => void;
-  setRoles: (roles: any) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -28,30 +25,19 @@ export const useAuthStore = create<AuthState>()(
       },
       isAuthenticated: false,
       isLoading: true,
-      setIsLoading: (isLoading) => set({ isLoading }),
-      setUser: (user) => set({ user, isAuthenticated: !!user }),
-      setRoles: (roles) => set({ roles }),
       login: async (email, password) => {
         const response = await fetch("/api/auth/login", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Cache-Control":
-              "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
-            Pragma: "no-cache",
-            Expires: "0",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
         });
 
+        const result = await response.json();
         if (!response.ok) {
-          const result = await response.json();
-          throw new Error(result.error);
+          throw new Error(result.error || "Login failed");
         }
 
-        const result = await response.json();
         const user = result.data.user;
-
         set({
           user,
           roles: user?.user_metadata || {
@@ -61,43 +47,39 @@ export const useAuthStore = create<AuthState>()(
           },
           isAuthenticated: true,
         });
+
+        // Determine redirect path based on roles, then stash for after reload
+        const meta = user?.user_metadata || {};
+        let redirect = "/";
+        if (meta.is_qr_superadmin === 1) redirect = "/superadmin-portal";
+        else if (meta.is_qr_admin === 1) redirect = "/admin-portal";
+        else if (meta.is_qr_member === 1) redirect = "/members-portal";
+        try {
+          localStorage.setItem("redirectAfterLogin", redirect);
+        } catch {}
+
+        // Force a hard refresh to sync client caches with server auth cookies
+        window.location.reload();
       },
       logout: async () => {
-        const response = await fetch("/api/auth/logout", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Cache-Control":
-              "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
-            Pragma: "no-cache",
-            Expires: "0",
-          },
-        });
-
+        const response = await fetch("/api/auth/logout", { method: "POST" });
         if (!response.ok) {
           const result = await response.json();
-          throw new Error(result.error);
+          throw new Error(result.error || "Logout failed");
         }
-
-        // Clear redirect URL
-        localStorage.removeItem("redirectAfterLogin");
 
         set({
           user: null,
-          roles: {
-            is_qr_superadmin: 0,
-            is_qr_admin: 0,
-            is_qr_member: 0,
-          },
+          roles: { is_qr_superadmin: 0, is_qr_admin: 0, is_qr_member: 0 },
           isAuthenticated: false,
         });
+
+        // Hard refresh for a clean logout and cache clear
+        window.location.reload();
       },
     }),
     {
-      name: "auth-store", // name of the item in the storage (localStorage)
-      onRehydrateStorage: () => (state) => {
-        state?.setIsLoading(false);
-      },
+      name: "auth-store",
     }
   )
 );

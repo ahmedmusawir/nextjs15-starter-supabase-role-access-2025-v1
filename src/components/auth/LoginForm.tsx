@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Spinner from "@/components/common/Spinner";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -21,7 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const formSchema = z.object({
@@ -40,6 +41,7 @@ const formSchema = z.object({
 
 const LoginForm = () => {
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const login = useAuthStore((state) => state.login);
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
@@ -50,56 +52,28 @@ const LoginForm = () => {
     },
   });
 
-  const handleSubmit = async (data: z.infer<typeof formSchema>) => {
-    setError(null); // Reset error state before submission
-
+  // After a successful login the store forces a reload. On mount, if a redirect
+  // target exists, navigate and clear it.
+  useEffect(() => {
     try {
-      // Call the login API directly instead of using Zustand store
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: data.email,
-          password: data.password,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.data) {
-        // Login successful - update Zustand store for client-side state
-        await login(data.email, data.password);
-        
-        // Check if there's a stored URL in local storage
-        const redirectURL = localStorage.getItem("redirectAfterLogin");
-
-        if (redirectURL) {
-          // Clear the stored URL after using it
-          localStorage.removeItem("redirectAfterLogin");
-          router.push(redirectURL);
-        } else {
-          // Use server-side user data for role-based redirection
-          const userMetadata = result.data.user?.user_metadata || {};
-          
-          // Default role-based redirection using server data
-          if (userMetadata.is_qr_superadmin) {
-            router.push("/superadmin-portal");
-          } else if (userMetadata.is_qr_admin) {
-            router.push("/admin-portal");
-          } else if (userMetadata.is_qr_member) {
-            router.push("/members-portal");
-          } else {
-            router.push("/"); // Fallback in case no roles match
-          }
-        }
-      } else {
-        setError(result.error || "Authentication failed. Please try again.");
+      const target = localStorage.getItem("redirectAfterLogin");
+      if (target) {
+        localStorage.removeItem("redirectAfterLogin");
+        router.replace(target);
       }
+    } catch {}
+  }, [router]);
+
+  const handleSubmit = async (data: z.infer<typeof formSchema>) => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      await login(data.email, data.password);
+      // Store triggers hard refresh; no client-side routing here.
     } catch (error: any) {
       console.error("Login error:", error.message);
-      setError(error.message); // Set the error state
+      setError(error.message);
+      setIsLoading(false);
     }
   };
 
@@ -165,7 +139,11 @@ const LoginForm = () => {
                   {error}
                 </div>
               )}
-              <Button className="w-full bg-slate-700 text-white dark:bg-slate-600 dark:text-white hover:bg-gray-900">
+              {isLoading && <Spinner />}
+              <Button
+                disabled={isLoading}
+                className="w-full bg-slate-700 text-white dark:bg-slate-600 dark:text-white hover:bg-gray-900 disabled:opacity-70"
+              >
                 Login
               </Button>
             </form>
