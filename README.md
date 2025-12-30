@@ -1,5 +1,6 @@
 # nextjs15-starter-supabase-role-access-2025-v1
 
+\*\* React Upgraded to safe 19.2.1 ... Next 15.4.6 is already safe
 This is the latest starter project w/ Next.js 15, Shadcn and Supabase role based access enabled v1
 
 # CURRENT SETUP
