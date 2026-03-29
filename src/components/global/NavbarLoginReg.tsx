@@ -11,7 +11,7 @@ const NavbarLoginReg = () => {
             src={
               "https://res.cloudinary.com/dyb0qa58h/image/upload/v1696245158/company-4-logo_syxli0.png"
             }
-            alt="Cyberize"
+            alt="Stark SaaS Starter"
             width={40}
             height={40}
           />

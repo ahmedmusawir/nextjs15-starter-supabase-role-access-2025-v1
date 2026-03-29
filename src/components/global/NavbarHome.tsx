@@ -20,6 +20,7 @@ import { usePathname } from "next/navigation";
 
 const NavbarHome = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
   const pathname = usePathname();
 
@@ -50,6 +51,7 @@ const NavbarHome = () => {
     const fetchUser = async () => {
       const { data } = await supabase.auth.getUser();
       setUser(data.user);
+      setIsLoading(false);
     };
 
     // Listen for auth changes
@@ -75,7 +77,7 @@ const NavbarHome = () => {
           src={
             "https://res.cloudinary.com/dyb0qa58h/image/upload/v1696245158/company-4-logo_syxli0.png"
           }
-          alt="Cyberize"
+          alt="Stark SaaS Starter"
           width={40}
           height={40}
         />
@@ -95,31 +97,42 @@ const NavbarHome = () => {
       <div className="flex items-center">
         <ThemeToggler />
 
-        {user && <span className="mr-3 text-white">{user.email}</span>}
+        {!isLoading && (
+          <>
+            {user && <span className="mr-3 text-white">{user.email}</span>}
 
-        <DropdownMenu>
-          <DropdownMenuTrigger>
-            <Avatar>
-              <AvatarImage
-                src="https://res.cloudinary.com/dyb0qa58h/image/upload/v1699413824/wjykytitrfuv2ubnyzqd.png"
-                alt={user ? user.email ?? "Avatar" : "Avatar"}
-              />
-              <AvatarFallback>
-                {user ? user.email?.[0] ?? "U" : "U"}
-              </AvatarFallback>
-            </Avatar>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <Link href={"/profile"}>Profile</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Logout /> {/* Use the Logout component */}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            {user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger>
+                  <Avatar>
+                    <AvatarImage
+                      src="https://res.cloudinary.com/dyb0qa58h/image/upload/v1699413824/wjykytitrfuv2ubnyzqd.png"
+                      alt={user.email ?? "Avatar"}
+                    />
+                    <AvatarFallback>{user.email?.[0] ?? "U"}</AvatarFallback>
+                  </Avatar>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Link href={"/profile"}>Profile</Link>
+                  </DropdownMenuItem>
+                  <Logout />
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            {!user && (
+              <Link
+                href={"/auth"}
+                className="ml-3 text-sm font-medium text-white hover:text-gray-300"
+              >
+                Login
+              </Link>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

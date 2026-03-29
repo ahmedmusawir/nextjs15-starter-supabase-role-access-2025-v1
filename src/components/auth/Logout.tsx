@@ -1,29 +1,22 @@
 "use client";
 
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/store/useAuthStore";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 const Logout = () => {
   const router = useRouter();
-  const pathname = usePathname();
 
-  // Client-side logout function
   const handleLogout = async () => {
-    const response = await fetch("/api/auth/logout", {
-      method: "POST",
-    });
-
-    if (response.ok) {
-      // Clear client-side authentication state (e.g., Zustand)
-      useAuthStore.getState().logout();
+    try {
+      await useAuthStore.getState().logout();
       router.push("/auth");
-    } else {
+    } catch (error) {
       console.error("Failed to log out");
     }
   };
 
-  return <div onClick={handleLogout}>Logout</div>;
+  return <DropdownMenuItem onSelect={handleLogout}>Logout</DropdownMenuItem>;
 };
 
 export default Logout;

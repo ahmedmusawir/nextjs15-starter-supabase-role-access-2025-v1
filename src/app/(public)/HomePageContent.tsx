@@ -15,7 +15,7 @@ const HomePageContent = () => {
       </Head>
       <Page className={"border border-gray-300"} FULL={false}>
         <Row className={"min-w-full text-center my-5"}>
-          <h2>Cyberize AI Power Events</h2>
+          <h2>Stark SaaS Starter Demo Events</h2>
         </Row>
         <Row className={"grid gap-3 grid-auto-fit p-3"}>
           <Box className={"p-1"}>
