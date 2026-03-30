@@ -9,6 +9,12 @@ module.exports = {
   // Automatically clear mock calls and instances between every test
   clearMocks: true,
 
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
+
+  setupFilesAfterEnv: ['<rootDir>/src/__tests__/jest.setup.ts'],
+
   // A list of paths to directories that Jest should use to search for files in
   roots: ['<rootDir>/src'],
 
@@ -22,4 +28,6 @@ module.exports = {
   transform: {
     '^.+\\.(ts|tsx)$': 'ts-jest',
   },
+
+  testPathIgnorePatterns: ['/node_modules/', '/.next/', '<rootDir>/src/__tests__/jest.setup.ts'],
 };

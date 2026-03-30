@@ -1,94 +1,276 @@
-# Stark SaaS Starter
+# Pro RBAC Next.js Starter Kit
 
-A generic Next.js starter kit for building role-based SaaS applications with Supabase SSR authentication, App Router route protection, and a reusable UI foundation.
+> **Factory Standard manual for a production-grade Next.js + Supabase starter with SSR authentication, database-authoritative RBAC, service-role admin provisioning, cache-safe auth transitions, and Jest-backed security tests.**
 
----
+This repository is a hardened starter kit for teams that want a serious authentication and authorization foundation from day one.
 
-## What This Starter Includes
+It is built around one non-negotiable principle:
 
-- Next.js App Router structure
-- Supabase SSR session handling
-- App-layer RBAC for `superadmin`, `admin`, and `member`
-- shadcn/ui-based component library
-- Zustand auth store for client-side transitions
-- Theme support with `next-themes`
+> **Next.js handles routing and experience. Postgres decides access.**
 
 ---
 
-## Auth and RBAC Overview
+## What This Starter Is
 
-### SSR Session Handling
+This starter provides:
 
-- `src/middleware.ts` delegates to `src/utils/supabase/middleware.ts`
-- `src/utils/supabase/server.ts` creates the server Supabase client using `cookies()`
-- `src/utils/supabase/client.ts` creates the browser Supabase client
-
-### Route Protection
-
-Protected App Router groups call `protectPage()` in their layouts:
-
-- `src/app/(admin)/layout.tsx`
-- `src/app/(members)/layout.tsx`
-- `src/app/(superadmin)/layout.tsx`
-
-Role derivation lives in `src/utils/get-user-role.ts` and resolves one of:
-
-- `superadmin`
-- `admin`
-- `member`
-
-### Auth APIs
-
-The starter ships with these routes:
-
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
-- `POST /api/auth/signup`
-- `GET /api/auth/confirm`
-- `POST /api/auth/superadmin-add-user`
+- **Next.js App Router** with protected route groups
+- **Supabase SSR authentication** with cookie-based session refresh
+- **Database-backed RBAC** using a dedicated `public.user_roles` table
+- **Typed role guards** using the `AppRole` enum
+- **Server-side route protection** via `protectPage()`
+- **Privileged admin provisioning** using a server-only service role key
+- **Next.js cache invalidation** for login, signup, logout, and role changes
+- **Jest security tests** for core RBAC surfaces
+- **Reusable UI foundation** with shadcn/ui and Tailwind
 
 ---
 
-## Folder Snapshot
+## Core Security Philosophy
 
+### Receptionist vs. Vault Guard
+
+- **Next.js is the receptionist**
+  - decides which page or portal to show
+  - performs layout-level route gating
+  - redirects unauthorized users away from protected UI
+
+- **Postgres is the vault guard**
+  - evaluates the authenticated caller
+  - reads role truth from `public.user_roles`
+  - enforces final data access with Row Level Security
+
+This means the frontend is never trusted as the final permission boundary.
+
+---
+
+## High-Level Feature Set
+
+### Authentication
+
+- Supabase Auth signup, login, logout, and confirmation flows
+- SSR-safe cookie handling
+- `proxy.ts` middleware session refresh loop
+- cache-aware auth transitions using `revalidatePath()` and `router.refresh()`
+
+### Authorization
+
+- `public.user_roles` as the canonical role authority
+- `AppRole` enum for type-safe route guards
+- `protectPage()` in server-side layouts
+- automatic default `member` assignment via Postgres trigger
+- secure superadmin-only admin creation flow
+
+### Testing
+
+- Jest + ts-jest
+- shared mocks for `next/navigation`, `next/cache`, and Supabase clients
+- security-focused tests for role lookup, route protection, proxy, and superadmin provisioning
+
+---
+
+## Tech Stack
+
+```txt
+Next.js 16
+React 19
+TypeScript
+Supabase Auth
+Supabase SSR
+Postgres + RLS
+Zustand
+Tailwind CSS
+shadcn/ui
+Jest + ts-jest
 ```
-.
-├── agent_docs/
-│   ├── APP_FACTORY/
-│   ├── CURRENT_APP/
-│   ├── SESSIONS/
-│   └── STARTER_PROJECT_OVERVIEW.md
-├── src/
-│   ├── app/
-│   ├── components/
-│   ├── store/
-│   ├── utils/
-│   └── middleware.ts
-├── RECOVERY.md
-├── WINDSURF.md
-└── package.json
+
+---
+
+## Environment Variables
+
+Create a `.env.local` file with the following values:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_SECRET_KEY=
+NEXT_PUBLIC_SITE_URL=
 ```
 
+### Variable Reference
+
+- **`NEXT_PUBLIC_SUPABASE_URL`**
+  - your Supabase project URL
+
+- **`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`**
+  - the publishable client key used by SSR/browser clients
+
+- **`SUPABASE_SECRET_KEY`**
+  - the server-only privileged key used for superadmin provisioning flows
+  - **never expose this to the browser**
+
+- **`NEXT_PUBLIC_SITE_URL`**
+  - used for site-aware behavior such as secure cookie handling
+
 ---
 
-## Important Constraints
+## Quick Start
 
-- RBAC is currently enforced at the application layer
-- Supabase middleware/session logic should be treated as infrastructure
-- UI primitives in `src/components/ui/` should remain reusable and domain-agnostic
-
----
-
-## Development Commands
+### 1. Install dependencies
 
 ```bash
 npm install
+```
+
+### 2. Add environment variables
+
+Populate `.env.local` with your Supabase project values.
+
+### 3. Set up the database
+
+Apply the SQL blueprint in:
+
+- [`docs/DATABASE_SETUP.md`](docs/DATABASE_SETUP.md)
+
+### 4. Start the app
+
+```bash
 npm run dev
+```
+
+### 5. Run tests
+
+```bash
+npm test
+```
+
+### 6. Validate production build
+
+```bash
 npm run build
 ```
 
 ---
 
+## Documentation Index
+
+### Core Manuals
+
+- **[Architecture](docs/ARCHITECTURE.md)**
+  - Receptionist vs. Vault Guard
+  - system responsibilities
+  - request flow
+  - trust boundaries
+  - cache invalidation model
+
+- **[Authentication](docs/AUTHENTICATION.md)**
+  - Supabase Auth flow
+  - SSR session handling
+  - `proxy.ts` refresh loop
+  - why `user_metadata` is not used for roles
+
+- **[Authorization](docs/AUTHORIZATION.md)**
+  - `user_roles` table
+  - `AppRole` enum
+  - `protectPage()` server action
+  - default member trigger
+  - superadmin admin-creation One-Two Punch
+
+- **[Database Setup](docs/DATABASE_SETUP.md)**
+  - exact SQL blueprint
+  - enum creation
+  - tables
+  - helper functions
+  - RLS policies
+  - trigger setup
+
+- **[Testing](docs/TESTING.md)**
+  - Jest setup
+  - mocking architecture
+  - security test suite coverage
+  - test execution commands
+
+---
+
+## Important Application Flows
+
+### Public Signup
+
+1. User submits name, email, and password
+2. Supabase creates the auth account
+3. Postgres trigger inserts a `member` role row
+4. Next.js cache is invalidated
+5. User is routed into the members portal
+
+### Login
+
+1. Supabase authenticates credentials
+2. Login route reads the user's role from `public.user_roles`
+3. Next.js server cache is invalidated
+4. Client router cache is refreshed
+5. User is routed to the correct portal
+
+### Superadmin Creates Admin
+
+1. Route verifies the caller is authenticated
+2. Route verifies the caller's role is `superadmin`
+3. Server-only admin client creates the new auth user
+4. Server-only admin client updates `public.user_roles`
+
+This is the starter kit's privileged provisioning model.
+
+---
+
+## Project Structure
+
+```txt
+.
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── AUTHENTICATION.md
+│   ├── AUTHORIZATION.md
+│   ├── DATABASE_SETUP.md
+│   └── TESTING.md
+├── src/
+│   ├── app/
+│   ├── components/
+│   ├── store/
+│   └── utils/
+├── jest.config.js
+├── README.md
+└── package.json
+```
+
+---
+
+## Factory Standard Rules
+
+- **Do not** store authorization-critical role flags in `user_metadata`
+- **Do not** expose `SUPABASE_SECRET_KEY` to the browser
+- **Do not** trust hidden UI as a security boundary
+- **Do** keep role truth in `public.user_roles`
+- **Do** enforce domain data permissions with RLS
+- **Do** use server-side route guards for protected layouts
+
+---
+
 ## Current Status
 
-This repository is positioned as a reusable starter, not a domain-specific product. Customize branding, routes, and business entities in app-facing files while preserving the auth and platform foundation.
+This starter currently includes:
+
+- database-authoritative RBAC
+- cache-safe auth routing
+- superadmin admin provisioning
+- protected Next.js App Router portals
+- passing Jest security suite
+- clean production build
+
+---
+
+## Final Note
+
+This is not a toy auth scaffold.
+
+It is a reusable **senior-team starter kit** designed to give you a strong default position on authentication, authorization, session consistency, and testability.
+
+> **Factory Standard rule:** The UI can guide access. The database must defend it.

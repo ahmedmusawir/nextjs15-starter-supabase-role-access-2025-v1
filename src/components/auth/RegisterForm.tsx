@@ -63,13 +63,6 @@ const RegisterForm = () => {
   });
 
   const handleSubmit = async (data: z.infer<typeof formSchema>) => {
-    let user_metadata = {
-      name: data.name,
-      is_qr_superadmin: 0,
-      is_qr_admin: 0,
-      is_qr_member: 1,
-    };
-
     const response = await fetch("/api/auth/signup", {
       method: "POST",
       headers: {
@@ -78,14 +71,15 @@ const RegisterForm = () => {
       body: JSON.stringify({
         email: data.email,
         password: data.password,
-        user_metadata: user_metadata,
+        name: data.name,
       }),
     });
 
     console.log("Signup Response: ", response);
 
     if (response.ok) {
-      router.push("/dashboard");
+      router.refresh();
+      router.push("/members-portal");
     } else {
       const result = await response.json();
       console.error("Signup error:", result.error);

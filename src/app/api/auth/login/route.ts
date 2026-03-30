@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { revalidatePath } from "next/cache";
 
 // Ensure this route is always dynamic and not cached
 export const dynamic = "force-dynamic";
@@ -42,20 +43,29 @@ export async function POST(req: NextRequest) {
     return err;
   }
 
-  const res = NextResponse.json({ data }, { status: 200 });
+  // Purge the entire Next.js Server Component cache so layouts re-run protectPage
+  revalidatePath('/', 'layout');
+
+  // Fetch the user's role from user_roles table
+  let role = null;
+  if (data.user) {
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', data.user.id)
+      .single();
+    
+    role = roleData?.role || null;
+  }
+
+  const res = NextResponse.json({ 
+    data: {
+      ...data,
+      role
+    }
+  }, { status: 200 });
   res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.headers.set("Pragma", "no-cache");
   res.headers.set("Expires", "0");
-  // Collect cookies set during this request cycle via next/headers store
-  try {
-    // We cannot directly read cookies set by Supabase here reliably, but we can at least echo names we expect
-    const cookieNames: string[] = [];
-    // Common Supabase cookie names vary by version; include broad patterns being used
-    // Note: This is best-effort visibility for debugging
-    const possible = ['sb-access-token', 'sb-refresh-token'];
-    // Attach names as header for visibility (non-sensitive)
-    res.headers.set('x-login-cookies-set', String(possible.length));
-    res.headers.set('x-login-cookie-names', possible.join(','));
-  } catch {}
   return res;
 }

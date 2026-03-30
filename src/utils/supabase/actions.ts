@@ -14,7 +14,7 @@ export async function protectPage(allowedRoles: AppRole[]) {
     return redirect("/auth");
   }
 
-  const userRole = getUserRole(user.user_metadata);
+  const userRole = await getUserRole(user.id);
   if (!userRole || !allowedRoles.includes(userRole)) {
     return redirect("/auth");
   }

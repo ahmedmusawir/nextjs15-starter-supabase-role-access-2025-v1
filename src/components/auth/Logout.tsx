@@ -10,6 +10,7 @@ const Logout = () => {
   const handleLogout = async () => {
     try {
       await useAuthStore.getState().logout();
+      router.refresh();
       router.push("/auth");
     } catch (error) {
       console.error("Failed to log out");

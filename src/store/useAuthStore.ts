@@ -1,16 +1,13 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { AppRole } from "@/utils/get-user-role";
 
 interface AuthState {
   user: any | null;
-  roles: {
-    is_qr_superadmin: number;
-    is_qr_admin: number;
-    is_qr_member: number;
-  };
+  role: AppRole | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<string>;
   logout: () => Promise<void>;
 }
 
@@ -18,11 +15,7 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      roles: {
-        is_qr_superadmin: 0,
-        is_qr_admin: 0,
-        is_qr_member: 0,
-      },
+      role: null,
       isAuthenticated: false,
       isLoading: true,
       login: async (email, password) => {
@@ -38,28 +31,19 @@ export const useAuthStore = create<AuthState>()(
         }
 
         const user = result.data.user;
+        const role = result.data.role;
+
         set({
           user,
-          roles: user?.user_metadata || {
-            is_qr_superadmin: 0,
-            is_qr_admin: 0,
-            is_qr_member: 0,
-          },
+          role,
           isAuthenticated: true,
         });
 
-        // Determine redirect path based on roles, then stash for after reload
-        const meta = user?.user_metadata || {};
-        let redirect = "/";
-        if (meta.is_qr_superadmin === 1) redirect = "/superadmin-portal";
-        else if (meta.is_qr_admin === 1) redirect = "/admin-portal";
-        else if (meta.is_qr_member === 1) redirect = "/members-portal";
-        try {
-          localStorage.setItem("redirectAfterLogin", redirect);
-        } catch {}
-
-        // Force a hard refresh to sync client caches with server auth cookies
-        window.location.reload();
+        // Return the redirect path so the calling component can handle navigation
+        if (role === "superadmin") return "/superadmin-portal";
+        if (role === "admin") return "/admin-portal";
+        if (role === "member") return "/members-portal";
+        return "/";
       },
       logout: async () => {
         const response = await fetch("/api/auth/logout", { method: "POST" });
@@ -70,12 +54,9 @@ export const useAuthStore = create<AuthState>()(
 
         set({
           user: null,
-          roles: { is_qr_superadmin: 0, is_qr_admin: 0, is_qr_member: 0 },
+          role: null,
           isAuthenticated: false,
         });
-
-        // Hard refresh for a clean logout and cache clear
-        window.location.reload();
       },
     }),
     {

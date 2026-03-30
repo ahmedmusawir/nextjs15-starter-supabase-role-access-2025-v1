@@ -1,27 +1,34 @@
-// Define the possible application roles for strict type checking
-export type AppRole = 'superadmin' | 'admin' | 'member';
+import { createClient } from './supabase/server';
+
+// Define the possible application roles as an enum for strict type checking
+export enum AppRole {
+  SUPERADMIN = 'superadmin',
+  ADMIN = 'admin',
+  MEMBER = 'member'
+}
 
 /**
- * Derives a single role string from a Supabase user's metadata.
- * Checks from highest permission to lowest and returns the first match.
- * If nothing matches, returns null.
+ * Fetches the user's role from the user_roles table in the database.
+ * This is the canonical source of truth for authorization.
+ * 
+ * @param userId - The authenticated user's ID from auth.users
+ * @returns The user's role or null if not found
  */
-export const getUserRole = (userMetaData: any): AppRole | null => {
-  if (!userMetaData) return null;
+export const getUserRole = async (userId: string): Promise<AppRole | null> => {
+  if (!userId) return null;
 
-  // Support numeric (1/0), boolean, and common string variants ('1', 'true')
-  const isTrue = (v: unknown) => {
-    if (v === 1 || v === true) return true;
-    if (typeof v === 'string') {
-      const s = v.trim().toLowerCase();
-      return s === '1' || s === 'true';
-    }
-    return false;
-  };
+  const supabase = await createClient();
+  
+  const { data, error } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .single();
 
-  if (isTrue(userMetaData.is_qr_superadmin)) return 'superadmin';
-  if (isTrue(userMetaData.is_qr_admin)) return 'admin';
-  if (isTrue(userMetaData.is_qr_member)) return 'member';
+  if (error || !data) {
+    console.error('Error fetching user role:', error);
+    return null;
+  }
 
-  return null;
+  return data.role as AppRole;
 };

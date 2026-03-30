@@ -1,13 +1,14 @@
 import { ReactNode } from "react";
 import Navbar from "@/components/global/Navbar";
 import { protectPage } from "@/utils/supabase/actions";
+import { AppRole } from "@/utils/get-user-role";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export default async function SuperAdminLayout({ children }: LayoutProps) {
-  await protectPage(["superadmin"]);
+  await protectPage([AppRole.SUPERADMIN]);
 
   return (
     <div className="flex flex-col min-h-screen">

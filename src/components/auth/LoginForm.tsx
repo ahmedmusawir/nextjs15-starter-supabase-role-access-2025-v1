@@ -22,7 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const formSchema = z.object({
@@ -52,24 +52,13 @@ const LoginForm = () => {
     },
   });
 
-  // After a successful login the store forces a reload. On mount, if a redirect
-  // target exists, navigate and clear it.
-  useEffect(() => {
-    try {
-      const target = localStorage.getItem("redirectAfterLogin");
-      if (target) {
-        localStorage.removeItem("redirectAfterLogin");
-        router.replace(target);
-      }
-    } catch {}
-  }, [router]);
-
   const handleSubmit = async (data: z.infer<typeof formSchema>) => {
     setError(null);
     setIsLoading(true);
     try {
-      await login(data.email, data.password);
-      // Store triggers hard refresh; no client-side routing here.
+      const redirectPath = await login(data.email, data.password);
+      router.refresh();
+      router.push(redirectPath);
     } catch (error: any) {
       console.error("Login error:", error.message);
       setError(error.message);

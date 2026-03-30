@@ -1,10 +1,10 @@
-import Spinner from "@/components/common/Spinner";
+import SpinnerLarge from "@/components/common/SpinnerLarge";
 import React from "react";
 
 const Loading = () => {
   return (
-    <div>
-      <Spinner />
+    <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">
+      <SpinnerLarge />
     </div>
   );
 };
