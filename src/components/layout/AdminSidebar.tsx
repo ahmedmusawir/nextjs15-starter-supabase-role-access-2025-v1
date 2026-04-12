@@ -31,31 +31,13 @@ const AdminSidebar = () => {
             <LayoutDashboard className="mr-2 h-4 w-4" />
             <Link href="/admin-portal">Dashboard</Link>
           </CommandItem>
-          <CommandItem>
-            <Newspaper className="mr-2 h-4 w-4" />
-            <Link href="/admin-booking">New Booking</Link>
-          </CommandItem>
-          <CommandItem>
-            <Newspaper className="mr-2 h-4 w-4" />
-            <Link href="/posts">Bookings</Link>
-          </CommandItem>
         </CommandGroup>
         <CommandSeparator />
         <CommandGroup heading="Settings">
           <CommandItem>
             <User className="mr-2 h-4 w-4" />
-            <span>Profile</span>
+            <Link href="/profile">Profile</Link>
             <CommandShortcut>&#x2318; P</CommandShortcut>
-          </CommandItem>
-          <CommandItem>
-            <CreditCard className="mr-2 h-4 w-4" />
-            <span>Billing</span>
-            <CommandShortcut>&#x2318; B</CommandShortcut>
-          </CommandItem>
-          <CommandItem>
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
-            <CommandShortcut>&#x2318; S</CommandShortcut>
           </CommandItem>
         </CommandGroup>
       </CommandList>

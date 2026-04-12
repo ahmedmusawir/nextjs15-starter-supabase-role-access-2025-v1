@@ -103,7 +103,7 @@ const NavbarHome = () => {
 
             {user && (
               <DropdownMenu>
-                <DropdownMenuTrigger>
+                <DropdownMenuTrigger className="cursor-pointer">
                   <Avatar>
                     <AvatarImage
                       src="https://res.cloudinary.com/dyb0qa58h/image/upload/v1699413824/wjykytitrfuv2ubnyzqd.png"
@@ -112,7 +112,7 @@ const NavbarHome = () => {
                     <AvatarFallback>{user.email?.[0] ?? "U"}</AvatarFallback>
                   </Avatar>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
+                <DropdownMenuContent className="bg-white dark:bg-slate-800">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem>

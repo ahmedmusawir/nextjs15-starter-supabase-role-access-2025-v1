@@ -1,33 +1,101 @@
-import AdminBookingList from "@/components/admin/AdminBookingList";
-import BackButton from "@/components/common/BackButton";
-import Page from "@/components/common/Page";
-import Row from "@/components/common/Row";
-import { Button } from "@/components/ui/button";
-import Head from "next/head";
 import Link from "next/link";
-import React from "react";
+import { Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { getUsers } from "./actions";
+import DeleteUserButton from "./DeleteUserButton";
 
-const AdminPortalPageContent = () => {
+const PAGE_SIZE = 6;
+
+const roleColor: Record<string, string> = {
+  superadmin: "text-purple-600 dark:text-purple-400",
+  admin: "text-red-600 dark:text-red-400",
+  member: "text-green-600 dark:text-green-400",
+};
+
+interface Props {
+  page: number;
+}
+
+const AdminPortalPageContent = async ({ page }: Props) => {
+  const { users: allUsers, total } = await getUsers(page);
+  const users = allUsers.filter((u) => u.role !== "superadmin");
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
   return (
-    <>
-      <Head>
-        <title>AdminPortalPageContent</title>
-        <meta name="description" content="This is the template page" />
-      </Head>
-      <Page className={""} FULL={false}>
-        {/* <BackButton text="Go Back" link="/admin-portal" /> */}
-        <Link className="float-end" href="/admin-booking">
-          <Button className="bg-gray-700 hover:bg-gray-600 text-white">
-            Create Booking
-          </Button>
-        </Link>
-        <Row className="prose max-w-3xl mx-auto">
-          <h1 className="h1">Admin Portal</h1>
-          <h2 className="h2">Booked events list:</h2>
-          <AdminBookingList />
-        </Row>
-      </Page>
-    </>
+    <div className="container mx-auto p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Admin Portal</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage all users — {total} total
+          </p>
+        </div>
+      </div>
+
+      {users.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">No users found.</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {users.map((user) => (
+              <Card key={user.id} className="flex flex-col justify-between">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-semibold truncate">
+                    {user.full_name ?? "—"}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {user.email ?? "—"}
+                  </p>
+                </CardHeader>
+                <CardContent className="pb-2">
+                  <p className={`text-base font-bold ${roleColor[user.role] ?? "text-slate-500"}`}>
+                    Role: {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                  </p>
+                </CardContent>
+                <CardFooter className="flex gap-2 pt-2">
+                  <Button asChild variant="outline" size="sm" className="border-2 border-slate-400 dark:border-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700">
+                    <Link href={`/admin-portal/edit/${user.id}`}>
+                      <Pencil className="mr-1 h-4 w-4" />
+                      Edit
+                    </Link>
+                  </Button>
+                  {user.role === "member" && (
+                    <DeleteUserButton userId={user.id} userName={user.full_name} userEmail={user.email} />
+                  )}
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2">
+              {page > 1 && (
+                <Button asChild variant="outline">
+                  <Link href={`/admin-portal?page=${page - 1}`}>Previous</Link>
+                </Button>
+              )}
+              <span className="flex items-center px-4">
+                Page {page} of {totalPages}
+              </span>
+              {page < totalPages && (
+                <Button asChild variant="outline">
+                  <Link href={`/admin-portal?page=${page + 1}`}>Next</Link>
+                </Button>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 };
 

@@ -98,7 +98,7 @@ const NavbarSuperadmin = () => {
         {user && <span className="mr-3 text-white">{user.email}</span>}
 
         <DropdownMenu>
-          <DropdownMenuTrigger>
+          <DropdownMenuTrigger className="cursor-pointer">
             <Avatar>
               <AvatarImage
                 src="https://res.cloudinary.com/dyb0qa58h/image/upload/v1699413824/wjykytitrfuv2ubnyzqd.png"
@@ -109,15 +109,13 @@ const NavbarSuperadmin = () => {
               </AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
-          <DropdownMenuContent>
+          <DropdownMenuContent className="bg-white dark:bg-slate-800">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <Link href={"/profile"}>Profile</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Logout /> {/* Use the Logout component */}
-            </DropdownMenuItem>
+            <Logout />
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

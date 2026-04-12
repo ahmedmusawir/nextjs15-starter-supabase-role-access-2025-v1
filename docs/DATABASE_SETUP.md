@@ -4,368 +4,211 @@
 
 This document is the SQL blueprint for provisioning a fresh Supabase instance for the Pro RBAC starter kit.
 
-It defines:
+> **The complete runnable SQL file is at [`docs/setup.sql`](./setup.sql).**
+> Copy its contents and paste into the Supabase SQL Editor. Run top to bottom.
 
-- application role enum
-- `public.user_roles` table
-- helper authorization functions
-- row level security policies
-- automatic trigger for assigning `member` role on signup
+It provisions:
 
-> Apply this in your Supabase SQL editor against a fresh project with RLS enabled.
-
----
-
-## 1. Role Enum
-
-```sql
-create type public.app_role as enum ('superadmin', 'admin', 'member');
-```
+- `app_role` enum
+- `public.user_roles` table + RLS
+- `public.profiles` table + RLS
+- `handle_new_user()` trigger — auto-inserts into **both** `user_roles` and `profiles` on every new signup
+- First superadmin promotion instructions
 
 ---
 
-## 2. User Roles Table
+## How to Apply
+
+> ### Already have `user_roles` with existing data?
+> **Do NOT run `setup.sql`** — it will fail on `CREATE TABLE` and `CREATE TYPE` for things that already exist.
+> Run **[`docs/migration_add_profiles.sql`](./migration_add_profiles.sql)** instead.
+> It only adds the `profiles` table, backfills existing users, and updates the trigger. Safe to run on a live database.
+
+### Fresh database (no existing tables)
+
+1. Open your Supabase project → **SQL Editor**
+2. Open `docs/setup.sql` from this repo
+3. Paste the entire file into the editor
+4. Click **Run**
+5. After it succeeds, promote your first superadmin (see Step 5 below)
+
+---
+
+## Step 1 — Role Enum
 
 ```sql
-create table public.user_roles (
-  id bigint generated always as identity primary key,
-  user_id uuid not null unique references auth.users(id) on delete cascade,
-  role public.app_role not null default 'member',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-```
-
-### Recommended indexes
-
-```sql
-create index user_roles_role_idx on public.user_roles(role);
-create index user_roles_user_id_idx on public.user_roles(user_id);
+CREATE TYPE public.app_role AS ENUM ('superadmin', 'admin', 'member');
 ```
 
 ---
 
-## 3. Updated Timestamp Trigger
+## Step 2 — `user_roles` Table
+
+Stores the authoritative role for every auth user. This is the canonical source of truth — **not** `user_metadata`.
 
 ```sql
-create or replace function public.set_updated_at()
-returns trigger
-language plpgsql
-as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$;
-
-create trigger set_user_roles_updated_at
-before update on public.user_roles
-for each row
-execute function public.set_updated_at();
-```
-
----
-
-## 4. Role Helper Functions
-
-These helpers make RLS policies easier to read and maintain.
-
-### Get the current caller's role
-
-```sql
-create or replace function public.get_my_role()
-returns public.app_role
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select ur.role
-  from public.user_roles ur
-  where ur.user_id = auth.uid()
-  limit 1;
-$$;
-```
-
-### Superadmin check
-
-```sql
-create or replace function public.is_superadmin()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select public.get_my_role() = 'superadmin'::public.app_role;
-$$;
-```
-
-### Admin-or-higher check
-
-```sql
-create or replace function public.is_admin_or_superadmin()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select public.get_my_role() in ('admin'::public.app_role, 'superadmin'::public.app_role);
-$$;
-```
-
----
-
-## 5. Row Level Security on `user_roles`
-
-Enable RLS:
-
-```sql
-alter table public.user_roles enable row level security;
-```
-
-### Policy: users can read their own role row
-
-```sql
-create policy "users_can_read_own_role"
-on public.user_roles
-for select
-using (user_id = auth.uid());
-```
-
-### Policy: superadmins can read all role rows
-
-```sql
-create policy "superadmins_can_read_all_roles"
-on public.user_roles
-for select
-using (public.is_superadmin());
-```
-
-### Policy: superadmins can update roles
-
-```sql
-create policy "superadmins_can_update_roles"
-on public.user_roles
-for update
-using (public.is_superadmin())
-with check (public.is_superadmin());
-```
-
-### Optional policy: superadmins can insert roles manually
-
-```sql
-create policy "superadmins_can_insert_roles"
-on public.user_roles
-for insert
-with check (public.is_superadmin());
-```
-
-> In this starter, privileged insert/update operations are normally performed through the service role key, which bypasses RLS. These policies are still useful if you want controlled SQL-console or RPC-based admin workflows.
-
----
-
-## 6. Automatic Default Member Trigger
-
-When a new auth user signs up, the database should automatically create a matching `member` role row.
-
-### Trigger function
-
-```sql
-create or replace function public.handle_new_user_role()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  insert into public.user_roles (user_id, role)
-  values (new.id, 'member'::public.app_role)
-  on conflict (user_id) do nothing;
-
-  return new;
-end;
-$$;
-```
-
-### Trigger on `auth.users`
-
-```sql
-create trigger on_auth_user_created_assign_member_role
-after insert on auth.users
-for each row
-execute function public.handle_new_user_role();
-```
-
----
-
-## 7. Promote the First Superadmin
-
-Public signup creates `member` users by default. The first superadmin must be promoted manually once.
-
-```sql
-update public.user_roles
-set role = 'superadmin'::public.app_role
-where user_id = 'REPLACE-WITH-AUTH-USER-ID';
-```
-
-After that, your in-app superadmin flow can create admins safely.
-
----
-
-## 8. Example Domain Table Policy Pattern
-
-Below is a sample pattern for any protected domain table.
-
-```sql
-create table public.projects (
-  id bigint generated always as identity primary key,
-  owner_user_id uuid not null references auth.users(id) on delete cascade,
-  name text not null,
-  created_at timestamptz not null default now()
+CREATE TABLE public.user_roles (
+  id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id    uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  role       public.app_role NOT NULL DEFAULT 'member',
+  created_at timestamp with time zone DEFAULT now(),
+  UNIQUE (user_id)
 );
 
-alter table public.projects enable row level security;
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read their own role"
+  ON public.user_roles
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
 ```
 
-### Members can read their own projects
-
-```sql
-create policy "members_read_own_projects"
-on public.projects
-for select
-using (owner_user_id = auth.uid());
-```
-
-### Admins and superadmins can read all projects
-
-```sql
-create policy "admins_read_all_projects"
-on public.projects
-for select
-using (public.is_admin_or_superadmin());
-```
-
-This pattern is how the starter should be extended for real product data.
+> Write operations (insert/update) are performed by the service role key via the admin client — no user-facing insert policy is needed.
 
 ---
 
-## 9. Full Blueprint Script
+## Step 3 — `profiles` Table
+
+Stores the public-facing profile (name, email) for every auth user. Synced automatically by the trigger below.
 
 ```sql
-create type public.app_role as enum ('superadmin', 'admin', 'member');
-
-create table public.user_roles (
-  id bigint generated always as identity primary key,
-  user_id uuid not null unique references auth.users(id) on delete cascade,
-  role public.app_role not null default 'member',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+CREATE TABLE public.profiles (
+  id          uuid PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
+  full_name   text,
+  email       text,
+  created_at  timestamp with time zone DEFAULT now()
 );
 
-create index user_roles_role_idx on public.user_roles(role);
-create index user_roles_user_id_idx on public.user_roles(user_id);
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
-create or replace function public.set_updated_at()
-returns trigger
-language plpgsql
-as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$;
+CREATE POLICY "Users can read their own profile"
+  ON public.profiles
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = id);
 
-create trigger set_user_roles_updated_at
-before update on public.user_roles
-for each row
-execute function public.set_updated_at();
-
-create or replace function public.get_my_role()
-returns public.app_role
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select ur.role
-  from public.user_roles ur
-  where ur.user_id = auth.uid()
-  limit 1;
-$$;
-
-create or replace function public.is_superadmin()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select public.get_my_role() = 'superadmin'::public.app_role;
-$$;
-
-create or replace function public.is_admin_or_superadmin()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select public.get_my_role() in ('admin'::public.app_role, 'superadmin'::public.app_role);
-$$;
-
-alter table public.user_roles enable row level security;
-
-create policy "users_can_read_own_role"
-on public.user_roles
-for select
-using (user_id = auth.uid());
-
-create policy "superadmins_can_read_all_roles"
-on public.user_roles
-for select
-using (public.is_superadmin());
-
-create policy "superadmins_can_update_roles"
-on public.user_roles
-for update
-using (public.is_superadmin())
-with check (public.is_superadmin());
-
-create policy "superadmins_can_insert_roles"
-on public.user_roles
-for insert
-with check (public.is_superadmin());
-
-create or replace function public.handle_new_user_role()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  insert into public.user_roles (user_id, role)
-  values (new.id, 'member'::public.app_role)
-  on conflict (user_id) do nothing;
-
-  return new;
-end;
-$$;
-
-create trigger on_auth_user_created_assign_member_role
-after insert on auth.users
-for each row
-execute function public.handle_new_user_role();
+CREATE POLICY "Users can update their own profile"
+  ON public.profiles
+  FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = id);
 ```
 
 ---
 
-## 10. Final Notes
+## Step 4 — `handle_new_user()` Trigger
 
-- Keep the service role key server-only.
+Fires automatically on every new auth user creation. Inserts into **both** `user_roles` (default `member`) and `profiles` (email + name from metadata).
+
+```sql
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.user_roles (user_id, role)
+  VALUES (NEW.id, 'member');
+
+  INSERT INTO public.profiles (id, email, full_name)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    NEW.raw_user_meta_data ->> 'name'
+  );
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+```
+
+> **IMPORTANT:** Do NOT manually insert into `user_roles` or `profiles` when creating users via `supabase.auth.admin.createUser()`. This trigger handles it automatically.
+
+---
+
+## Step 5 — Promote the First Superadmin
+
+Every user starts as `member`. The first superadmin must be promoted manually once:
+
+```sql
+UPDATE public.user_roles
+SET role = 'superadmin'
+WHERE user_id = '<your-auth-user-uuid>';
+```
+
+Find your UUID in Supabase → **Authentication → Users**.
+
+After this one-time step, all future admins are created through the Superadmin Portal UI.
+
+---
+
+## Step 6 — Role Helper Functions (Optional)
+
+These helpers make RLS policies on domain tables cleaner to read.
+
+```sql
+CREATE OR REPLACE FUNCTION public.get_my_role()
+RETURNS public.app_role
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT role FROM public.user_roles WHERE user_id = auth.uid() LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_superadmin()
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT public.get_my_role() = 'superadmin'::public.app_role;
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_admin_or_superadmin()
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT public.get_my_role() IN ('admin'::public.app_role, 'superadmin'::public.app_role);
+$$;
+```
+
+---
+
+## Example Domain Table RLS Pattern
+
+```sql
+CREATE TABLE public.projects (
+  id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  owner_user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name          text NOT NULL,
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+
+-- Members see only their own rows
+CREATE POLICY "members_read_own_projects"
+  ON public.projects FOR SELECT
+  USING (owner_user_id = auth.uid());
+
+-- Admins and superadmins see all rows
+CREATE POLICY "admins_read_all_projects"
+  ON public.projects FOR SELECT
+  USING (public.is_admin_or_superadmin());
+```
+
+---
+
+## Final Notes
+
+- Keep `SUPABASE_SECRET_KEY` server-only — never expose it to the browser.
 - Do not store authorization flags in `user_metadata`.
 - Extend RLS to every domain table that matters.
-- Treat `user_roles` as the canonical authority for app-level role identity.
+- `public.user_roles` is the canonical authority for role identity.
+- `public.profiles` is the canonical source for display name and email in the Superadmin Portal.
 
 > **Factory Standard rule:** The database must be able to defend the product even if the UI is compromised.

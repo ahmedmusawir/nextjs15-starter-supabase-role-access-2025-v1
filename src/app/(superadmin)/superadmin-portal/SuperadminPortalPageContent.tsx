@@ -1,33 +1,102 @@
-import Page from "@/components/common/Page";
-import Row from "@/components/common/Row";
-import Head from "next/head";
 import React from "react";
+import Link from "next/link";
+import { Pencil, UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { getUsers } from "./actions";
+import DeleteUserButton from "./DeleteUserButton";
 
-const SuperadminPortalPageContent = () => {
+const PAGE_SIZE = 6;
+
+const roleColor: Record<string, string> = {
+  superadmin: "text-purple-600 dark:text-purple-400",
+  admin: "text-red-600 dark:text-red-400",
+  member: "text-green-600 dark:text-green-400",
+};
+
+interface Props {
+  page: number;
+}
+
+const SuperadminPortalPageContent = async ({ page }: Props) => {
+  const { users: allUsers, total } = await getUsers(page);
+  const users = allUsers.filter((u) => u.role !== "superadmin");
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
   return (
-    <>
-      <Head>
-        <title>SuperadminPortalPageContent</title>
-        <meta name="description" content="This is the template page" />
-      </Head>
-      <Page className={""} FULL={false}>
-        <Row className="prose max-w-3xl mx-auto">
-          <h1 className="h1">Superadmins' Portal</h1>
-          <h2 className="h2">
-            Lorem ipsum dolor, sit amet consectetur adipisicing elit
-          </h2>
-          <h3 className="h3">
-            Lorem ipsum dolor, sit amet consectetur adipisicing elit
-          </h3>
-          <p className="dark:text-white">
-            Lorem ipsum dolor sit amet consectetur adipisicing elit. Est
-            molestias pariatur earum praesentium tempore natus asperiores alias
-            facere delectus ullam? At in ducimus et delectus, autem veniam quas
-            natus quam?
+    <main className="container mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Superadmin Portal</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage all users — {total} total
           </p>
-        </Row>
-      </Page>
-    </>
+        </div>
+        <Button asChild>
+          <Link href="/superadmin-portal/add-user">
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add User
+          </Link>
+        </Button>
+      </div>
+
+      {users.length === 0 ? (
+        <p className="text-muted-foreground">No users found.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {users.map((user) => (
+            <Card key={user.id} className="flex flex-col justify-between">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-semibold truncate">
+                  {user.full_name ?? "—"}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground truncate">
+                  {user.email ?? "—"}
+                </p>
+              </CardHeader>
+              <CardContent className="pb-2">
+                <p className={`text-base font-bold ${roleColor[user.role] ?? "text-slate-500"}`}>
+                  Role: {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                </p>
+              </CardContent>
+              <CardFooter className="flex gap-2 pt-2">
+                <Button asChild variant="outline" size="sm" className="border-2 border-slate-400 dark:border-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700">
+                  <Link href={`/superadmin-portal/edit/${user.id}`}>
+                    <Pencil className="mr-1 h-4 w-4" />
+                    Edit
+                  </Link>
+                </Button>
+                <DeleteUserButton userId={user.id} userName={user.full_name} userEmail={user.email} />
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-8">
+          {page > 1 && (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/superadmin-portal?page=${page - 1}`}>Previous</Link>
+            </Button>
+          )}
+          <span className="text-sm text-muted-foreground">
+            Page {page} of {totalPages}
+          </span>
+          {page < totalPages && (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/superadmin-portal?page=${page + 1}`}>Next</Link>
+            </Button>
+          )}
+        </div>
+      )}
+    </main>
   );
 };
 
