@@ -70,4 +70,31 @@ describe('protectPage', () => {
     await expect(protectPage([AppRole.ADMIN as any])).rejects.toThrow('NEXT_REDIRECT:/auth');
     expect(redirectMock).toHaveBeenCalledWith('/auth');
   });
+
+  it('CRITICAL: explicitly denies member role access to superadmin routes', async () => {
+    const user = { id: 'member-user' };
+    mockAuthUser(user);
+    getUserRoleMock.mockResolvedValue(AppRole.MEMBER as any);
+
+    await expect(protectPage([AppRole.SUPERADMIN as any])).rejects.toThrow('NEXT_REDIRECT:/auth');
+    expect(redirectMock).toHaveBeenCalledWith('/auth');
+  });
+
+  it('CRITICAL: explicitly denies admin role access to superadmin routes', async () => {
+    const user = { id: 'admin-user' };
+    mockAuthUser(user);
+    getUserRoleMock.mockResolvedValue(AppRole.ADMIN as any);
+
+    await expect(protectPage([AppRole.SUPERADMIN as any])).rejects.toThrow('NEXT_REDIRECT:/auth');
+    expect(redirectMock).toHaveBeenCalledWith('/auth');
+  });
+
+  it('allows superadmin to access superadmin-only routes', async () => {
+    const user = { id: 'superadmin-user' };
+    mockAuthUser(user);
+    getUserRoleMock.mockResolvedValue(AppRole.SUPERADMIN as any);
+
+    await expect(protectPage([AppRole.SUPERADMIN as any])).resolves.toEqual(user);
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
 });

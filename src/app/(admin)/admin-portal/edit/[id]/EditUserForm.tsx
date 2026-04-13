@@ -57,6 +57,7 @@ const EditUserForm = ({ user }: Props) => {
       });
     } else {
       toast({ title: "User updated successfully" });
+      router.refresh();
       router.push("/admin-portal");
     }
   };

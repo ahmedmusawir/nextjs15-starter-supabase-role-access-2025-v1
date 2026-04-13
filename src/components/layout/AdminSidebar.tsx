@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Command,
-  CommandDialog,
   CommandEmpty,
   CommandGroup,
   CommandInput,
@@ -10,14 +9,7 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
-import {
-  LayoutDashboard,
-  Newspaper,
-  Folders,
-  CreditCard,
-  Settings,
-  User,
-} from "lucide-react";
+import { LayoutDashboard, User, UserPlus } from "lucide-react";
 import Link from "next/link";
 
 const AdminSidebar = () => {
@@ -30,6 +22,10 @@ const AdminSidebar = () => {
           <CommandItem>
             <LayoutDashboard className="mr-2 h-4 w-4" />
             <Link href="/admin-portal">Dashboard</Link>
+          </CommandItem>
+          <CommandItem>
+            <UserPlus className="mr-2 h-4 w-4" />
+            <Link href="/admin-portal/add-member">Add Member</Link>
           </CommandItem>
         </CommandGroup>
         <CommandSeparator />

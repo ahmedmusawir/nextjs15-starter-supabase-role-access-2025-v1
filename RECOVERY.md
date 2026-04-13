@@ -1,4 +1,4 @@
 # Recovery State
-Last action: v0.3.0 — Admin Portal complete (user management for admin role: view admin+member users, edit name only, delete members only, no add user)
-Current state: v0.3.0 complete. Superadmin Portal (v0.2.2) and Admin Portal both functional.
-Next step: Test Admin Portal — login as admin, verify user list, edit form (name only), delete (members only), pagination
+Last action: Bug fixes + Member Profile page + 27 new tests (81 total passing)
+Current state: All three portals functional. Toast fixed (solid bg). Names auto-capitalized on save. Member portal has /profile page with avatar initials + password update.
+Next step: Manual test — login as member, verify /profile loads and password update works. Sidebar Profile link should navigate to /profile.

@@ -102,6 +102,10 @@ export async function getUserById(userId: string): Promise<UserWithRole | null> 
 // ---------------------------------------------------------------------------
 // addUser — create auth user via admin API; trigger handles profiles + user_roles
 // ---------------------------------------------------------------------------
+function toTitleCase(name: string): string {
+  return name.trim().replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+}
+
 export async function addUser(formData: {
   name: string;
   email: string;
@@ -109,13 +113,14 @@ export async function addUser(formData: {
   role: string;
 }): Promise<{ error?: string }> {
   const adminClient = createAdminClient();
+  const fullName = toTitleCase(formData.name);
 
   const { error } = await adminClient.auth.admin.createUser({
     email: formData.email,
     password: formData.password,
     email_confirm: true,
     user_metadata: {
-      full_name: formData.name,
+      full_name: fullName,
       role: formData.role,
     },
   });
@@ -147,11 +152,12 @@ export async function editUser(
   formData: { name: string; role: string }
 ): Promise<{ error?: string }> {
   const adminClient = createAdminClient();
+  const fullName = toTitleCase(formData.name);
 
   // Update display name in auth user_metadata (keep in sync with profiles)
   const { error: authError } = await adminClient.auth.admin.updateUserById(
     userId,
-    { user_metadata: { full_name: formData.name } }
+    { user_metadata: { full_name: fullName } }
   );
 
   if (authError) {
@@ -161,7 +167,7 @@ export async function editUser(
   // Update full_name in profiles table
   const { error: profileError } = await adminClient
     .from("profiles")
-    .update({ full_name: formData.name })
+    .update({ full_name: fullName })
     .eq("id", userId);
 
   if (profileError) {

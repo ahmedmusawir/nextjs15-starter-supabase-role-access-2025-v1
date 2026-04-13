@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 const EditUserPage = async ({ params }: Props) => {
-  const user = await getUserById(params.id);
+  const { id } = await params;
+  const user = await getUserById(id);
 
   if (!user) {
     notFound();

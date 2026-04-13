@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/utils/supabase/admin";
 
+function toTitleCase(name: string): string {
+  return name.trim().replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+}
+
 const PAGE_SIZE = 6;
 
 export type UserWithRole = {
@@ -103,11 +107,12 @@ export async function editUser(
   formData: { name: string }
 ): Promise<{ error?: string }> {
   const adminClient = createAdminClient();
+  const fullName = toTitleCase(formData.name);
 
   // Update display name in auth user_metadata (keep in sync with profiles)
   const { error: authError } = await adminClient.auth.admin.updateUserById(
     userId,
-    { user_metadata: { full_name: formData.name } }
+    { user_metadata: { full_name: fullName } }
   );
 
   if (authError) {
@@ -117,7 +122,7 @@ export async function editUser(
   // Update full_name in profiles table
   const { error: profileError } = await adminClient
     .from("profiles")
-    .update({ full_name: formData.name })
+    .update({ full_name: fullName })
     .eq("id", userId);
 
   if (profileError) {
@@ -138,6 +143,41 @@ export async function deleteUser(userId: string): Promise<{ error?: string }> {
   const { error } = await adminClient.auth.admin.deleteUser(userId);
 
   if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/admin-portal");
+  return {};
+}
+
+// ---------------------------------------------------------------------------
+// addMember — create a new member-role user (admins cannot set any other role)
+// ---------------------------------------------------------------------------
+export async function addMember(formData: {
+  name: string;
+  email: string;
+  password: string;
+}): Promise<{ error?: string }> {
+  const adminClient = createAdminClient();
+  const fullName = toTitleCase(formData.name);
+
+  const { error } = await adminClient.auth.admin.createUser({
+    email: formData.email,
+    password: formData.password,
+    email_confirm: true,
+    user_metadata: {
+      full_name: fullName,
+      role: "member",
+    },
+  });
+
+  if (error) {
+    if (
+      error.message.toLowerCase().includes("already") ||
+      error.message.toLowerCase().includes("registered")
+    ) {
+      return { error: `A user with the email "${formData.email}" already exists.` };
+    }
     return { error: error.message };
   }
 
