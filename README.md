@@ -1,4 +1,4 @@
-# Pro RBAC Next.js Starter Kit
+# Pro RBAC Next.js 15x + Supabase Starter Kit 2025 v1
 
 > **Factory Standard manual for a production-grade Next.js + Supabase starter with SSR authentication, database-authoritative RBAC, service-role admin provisioning, cache-safe auth transitions, and Jest-backed security tests.**
 
