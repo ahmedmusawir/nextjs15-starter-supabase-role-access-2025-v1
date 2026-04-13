@@ -25,8 +25,7 @@ interface Props {
 }
 
 const SuperadminPortalPageContent = async ({ page }: Props) => {
-  const { users: allUsers, total } = await getUsers(page);
-  const users = allUsers.filter((u) => u.role !== "superadmin");
+  const { users, total } = await getUsers(page);
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
@@ -53,7 +52,7 @@ const SuperadminPortalPageContent = async ({ page }: Props) => {
           {users.map((user) => (
             <Card key={user.id} className="flex flex-col justify-between">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold truncate">
+                <CardTitle className="text-base font-semibold truncate capitalize">
                   {user.full_name ?? "—"}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground truncate">

@@ -29,7 +29,7 @@ import { editUser, type UserWithRole } from "../../actions";
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
-  role: z.enum(["superadmin", "admin", "member"], { required_error: "Role is required" }),
+  role: z.enum(["admin", "member"], { required_error: "Role is required" }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -47,7 +47,7 @@ const EditUserForm = ({ user }: EditUserFormProps) => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: user.full_name ?? "",
-      role: (user.role as FormValues["role"]) ?? "member",
+      role: (user.role === "superadmin" ? "admin" : user.role) as FormValues["role"] ?? "member",
     },
   });
 
@@ -125,7 +125,6 @@ const EditUserForm = ({ user }: EditUserFormProps) => {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600">
-                    <SelectItem value="superadmin">Superadmin</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="member">Member</SelectItem>
                   </SelectContent>

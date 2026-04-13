@@ -58,7 +58,7 @@ describe('Member ProfileForm', () => {
     expect(screen.getByRole('button', { name: /update password/i })).toBeInTheDocument();
   });
 
-  it('shows toast error when passwords do not match', async () => {
+  it('shows inline error when passwords do not match', async () => {
     render(<ProfileForm user={mockUser} />);
 
     fireEvent.change(screen.getByPlaceholderText(/minimum 8 characters/i), {
@@ -71,15 +71,13 @@ describe('Member ProfileForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /update password/i }));
 
     await waitFor(() => {
-      expect(mockToast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Passwords do not match', variant: 'destructive' })
-      );
+      expect(screen.getByText(/passwords do not match/i)).toBeInTheDocument();
     });
 
     expect(mockUpdateUser).not.toHaveBeenCalled();
   });
 
-  it('shows toast error when password is shorter than 8 characters', async () => {
+  it('shows inline error when password is shorter than 8 characters', async () => {
     render(<ProfileForm user={mockUser} />);
 
     fireEvent.change(screen.getByPlaceholderText(/minimum 8 characters/i), {
@@ -92,9 +90,7 @@ describe('Member ProfileForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /update password/i }));
 
     await waitFor(() => {
-      expect(mockToast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Password must be at least 8 characters', variant: 'destructive' })
-      );
+      expect(screen.getByText(/password must be at least 8 characters/i)).toBeInTheDocument();
     });
 
     expect(mockUpdateUser).not.toHaveBeenCalled();

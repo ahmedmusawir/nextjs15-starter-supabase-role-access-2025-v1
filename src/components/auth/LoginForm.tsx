@@ -55,15 +55,19 @@ const LoginForm = () => {
   const handleSubmit = async (data: z.infer<typeof formSchema>) => {
     setError(null);
     setIsLoading(true);
-    try {
-      const redirectPath = await login(data.email, data.password);
-      router.refresh();
-      router.push(redirectPath);
-    } catch (error: any) {
-      console.error("Login error:", error.message);
-      setError(error.message);
+
+    // Use .catch() instead of try/catch — prevents React 18 dev overlay from
+    // intercepting the rejected promise before our handler processes it
+    const redirectPath = await login(data.email, data.password).catch((err: Error) => {
+      setError(err.message || "Login failed. Please try again.");
       setIsLoading(false);
-    }
+      return null;
+    });
+
+    if (!redirectPath) return;
+
+    router.refresh();
+    router.push(redirectPath);
   };
 
   return (

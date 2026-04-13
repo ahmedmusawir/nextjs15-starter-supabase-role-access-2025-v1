@@ -82,7 +82,8 @@ describe('SuperadminPortalPageContent', () => {
     expect(deleteButtons).toHaveLength(2);
   });
 
-  it('filters out superadmin users from the display', async () => {
+  it('renders all users returned by getUsers (superadmin filtering handled at DB layer)', async () => {
+    // getUsers now excludes superadmins at query level — the component renders whatever it receives
     const mockUsers = [
       {
         id: 'user-1',
@@ -93,32 +94,23 @@ describe('SuperadminPortalPageContent', () => {
       },
       {
         id: 'user-2',
-        full_name: 'Superadmin User',
-        email: 'superadmin@example.com',
-        role: 'superadmin',
-        created_at: '2024-01-02',
-      },
-      {
-        id: 'user-3',
         full_name: 'Member User',
         email: 'member@example.com',
         role: 'member',
-        created_at: '2024-01-03',
+        created_at: '2024-01-02',
       },
     ];
 
     getUsersMock.mockResolvedValue({
       users: mockUsers,
-      total: 3,
+      total: 2,
     });
 
     const Component = await SuperadminPortalPageContent({ page: 1 });
     render(Component);
 
-    // Should only render 2 users (superadmin filtered out)
     expect(screen.getByText('Admin User')).toBeInTheDocument();
     expect(screen.getByText('Member User')).toBeInTheDocument();
-    expect(screen.queryByText('Superadmin User')).not.toBeInTheDocument();
   });
 
   it('displays role labels with correct color coding', async () => {

@@ -28,10 +28,27 @@ export async function getUsers(page: number = 1): Promise<{
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  // Query 1: paginated profiles
+  // Query 1: get all non-superadmin user IDs so pagination math is correct
+  const { data: nonSuperadminRoles, error: rolesFilterError } = await adminClient
+    .from("user_roles")
+    .select("user_id")
+    .neq("role", "superadmin");
+
+  if (rolesFilterError) {
+    throw new Error(`Failed to fetch role filter: ${rolesFilterError.message}`);
+  }
+
+  const allowedIds = (nonSuperadminRoles ?? []).map((r) => r.user_id);
+
+  if (allowedIds.length === 0) {
+    return { users: [], total: 0 };
+  }
+
+  // Query 2: paginated profiles restricted to non-superadmin IDs — count is now accurate
   const { data: profiles, error: profilesError, count } = await adminClient
     .from("profiles")
     .select("id, full_name, email, created_at", { count: "exact" })
+    .in("id", allowedIds)
     .order("created_at", { ascending: false })
     .range(from, to);
 
@@ -43,7 +60,7 @@ export async function getUsers(page: number = 1): Promise<{
     return { users: [], total: count ?? 0 };
   }
 
-  // Query 2: roles for only the users on this page
+  // Query 3: roles for only the users on this page
   const ids = profiles.map((p) => p.id);
   const { data: roles, error: rolesError } = await adminClient
     .from("user_roles")

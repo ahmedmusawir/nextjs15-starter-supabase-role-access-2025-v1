@@ -314,45 +314,57 @@ describe('Superadmin Portal Actions', () => {
   });
 
   describe('getUsers', () => {
-    it('fetches paginated users with roles', async () => {
+    it('fetches paginated non-superadmin users with roles', async () => {
+      // getUsers now has 3 queries:
+      // 1. user_roles.neq("role","superadmin")  → allowed IDs
+      // 2. profiles.in("id", allowedIds).order().range() → page profiles + count
+      // 3. user_roles.in("user_id", ids) → roles for this page
+      const mockAllowedIds = [{ user_id: 'user-1' }, { user_id: 'user-2' }];
       const mockProfiles = [
         { id: 'user-1', full_name: 'User One', email: 'one@example.com', created_at: '2024-01-01' },
         { id: 'user-2', full_name: 'User Two', email: 'two@example.com', created_at: '2024-01-02' },
       ];
-
       const mockRoles = [
         { user_id: 'user-1', role: 'admin' },
         { user_id: 'user-2', role: 'member' },
       ];
 
-      const mockRange = jest.fn().mockResolvedValue({
-        data: mockProfiles,
-        error: null,
-        count: 10,
-      });
-
-      const mockIn = jest.fn().mockResolvedValue({
-        data: mockRoles,
-        error: null,
-      });
+      let userRolesCallCount = 0;
 
       createAdminClientMock.mockReturnValue({
         from: jest.fn((table) => {
           if (table === 'profiles') {
             return {
               select: jest.fn().mockReturnValue({
-                order: jest.fn().mockReturnValue({
-                  range: mockRange,
+                in: jest.fn().mockReturnValue({
+                  order: jest.fn().mockReturnValue({
+                    range: jest.fn().mockResolvedValue({
+                      data: mockProfiles,
+                      error: null,
+                      count: 2,
+                    }),
+                  }),
                 }),
               }),
             };
           }
           if (table === 'user_roles') {
-            return {
-              select: jest.fn().mockReturnValue({
-                in: mockIn,
-              }),
-            };
+            userRolesCallCount++;
+            if (userRolesCallCount === 1) {
+              // First call: filter non-superadmin IDs
+              return {
+                select: jest.fn().mockReturnValue({
+                  neq: jest.fn().mockResolvedValue({ data: mockAllowedIds, error: null }),
+                }),
+              };
+            } else {
+              // Second call: fetch roles for page profiles
+              return {
+                select: jest.fn().mockReturnValue({
+                  in: jest.fn().mockResolvedValue({ data: mockRoles, error: null }),
+                }),
+              };
+            }
           }
         }),
       } as any);
@@ -360,12 +372,8 @@ describe('Superadmin Portal Actions', () => {
       const result = await getUsers(1);
 
       expect(result.users).toHaveLength(2);
-      expect(result.users[0]).toMatchObject({
-        id: 'user-1',
-        full_name: 'User One',
-        role: 'admin',
-      });
-      expect(result.total).toBe(10);
+      expect(result.users[0]).toMatchObject({ id: 'user-1', full_name: 'User One', role: 'admin' });
+      expect(result.total).toBe(2);
     });
   });
 

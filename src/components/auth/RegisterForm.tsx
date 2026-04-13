@@ -114,7 +114,7 @@ const RegisterForm = () => {
                       <Input
                         type="text"
                         className="p-6 bg-slate-100 dark:bg-slate-500 dark:text-white"
-                        placeholder="Please Enter Email"
+                        placeholder="Enter your full name"
                         {...field}
                       />
                     </FormControl>
@@ -171,13 +171,13 @@ const RegisterForm = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="uppercase text-xs font-bold text-zinc-500 dark:text.white">
-                      Password
+                      Confirm Password
                     </FormLabel>
                     <FormControl>
                       <Input
                         type="password"
                         className="p-6 bg-slate-100 dark:bg-slate-500 dark:text-white"
-                        placeholder="Please Enter password"
+                        placeholder="Confirm your password"
                         {...field}
                       />
                     </FormControl>

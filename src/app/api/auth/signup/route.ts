@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     password,
     options: {
       data: {
-        name: name || null,
+        full_name: name || null,
       },
     },
   });

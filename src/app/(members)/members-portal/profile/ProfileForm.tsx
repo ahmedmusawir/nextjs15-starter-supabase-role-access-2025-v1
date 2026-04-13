@@ -18,6 +18,7 @@ const ProfileForm = ({ user }: Props) => {
   const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const displayName: string =
@@ -32,12 +33,13 @@ const ProfileForm = ({ user }: Props) => {
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      toast({ title: "Passwords do not match", variant: "destructive" });
+    setValidationError(null);
+    if (password.length < 8) {
+      setValidationError("Password must be at least 8 characters.");
       return;
     }
-    if (password.length < 8) {
-      toast({ title: "Password must be at least 8 characters", variant: "destructive" });
+    if (password !== confirmPassword) {
+      setValidationError("Passwords do not match.");
       return;
     }
     setLoading(true);
@@ -54,6 +56,7 @@ const ProfileForm = ({ user }: Props) => {
       toast({ title: "Password updated successfully" });
       setPassword("");
       setConfirmPassword("");
+      setValidationError(null);
     }
   };
 
@@ -147,6 +150,9 @@ const ProfileForm = ({ user }: Props) => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
+              {validationError && (
+                <p className="text-sm text-red-500 dark:text-red-400 mt-1">{validationError}</p>
+              )}
             </div>
             <Button
               type="submit"
