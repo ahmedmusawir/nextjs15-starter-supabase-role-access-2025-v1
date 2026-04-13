@@ -173,8 +173,8 @@ describe('SuperadminPortalPageContent', () => {
     expect(screen.getByText(/Page 1 of 2/i)).toBeInTheDocument();
 
     // Should show Next button (not Previous on page 1)
-    expect(screen.getByRole('link', { name: /next/i })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /previous/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /next/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /previous/i })).not.toBeInTheDocument();
   });
 
   it('shows "Add User" button in the header', async () => {

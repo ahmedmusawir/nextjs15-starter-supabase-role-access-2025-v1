@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { Pencil, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PaginationControls from "@/components/common/PaginationControls";
 import {
   Card,
   CardContent,
@@ -79,21 +80,7 @@ const SuperadminPortalPageContent = async ({ page }: Props) => {
       )}
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-8">
-          {page > 1 && (
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/superadmin-portal?page=${page - 1}`}>Previous</Link>
-            </Button>
-          )}
-          <span className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
-          </span>
-          {page < totalPages && (
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/superadmin-portal?page=${page + 1}`}>Next</Link>
-            </Button>
-          )}
-        </div>
+        <PaginationControls page={page} totalPages={totalPages} baseUrl="/superadmin-portal" />
       )}
     </main>
   );

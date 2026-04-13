@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PaginationControls from "@/components/common/PaginationControls";
 import {
   Card,
   CardContent,
@@ -76,21 +77,7 @@ const AdminPortalPageContent = async ({ page }: Props) => {
           </div>
 
           {totalPages > 1 && (
-            <div className="flex justify-center gap-2">
-              {page > 1 && (
-                <Button asChild variant="outline">
-                  <Link href={`/admin-portal?page=${page - 1}`}>Previous</Link>
-                </Button>
-              )}
-              <span className="flex items-center px-4">
-                Page {page} of {totalPages}
-              </span>
-              {page < totalPages && (
-                <Button asChild variant="outline">
-                  <Link href={`/admin-portal?page=${page + 1}`}>Next</Link>
-                </Button>
-              )}
-            </div>
+            <PaginationControls page={page} totalPages={totalPages} baseUrl="/admin-portal" />
           )}
         </>
       )}

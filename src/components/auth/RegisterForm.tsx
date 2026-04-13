@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -50,6 +51,7 @@ const formSchema = z
 
 const RegisterForm = () => {
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -63,6 +65,8 @@ const RegisterForm = () => {
   });
 
   const handleSubmit = async (data: z.infer<typeof formSchema>) => {
+    setError(null);
+    setIsLoading(true);
     const response = await fetch("/api/auth/signup", {
       method: "POST",
       headers: {
@@ -82,8 +86,8 @@ const RegisterForm = () => {
       router.push("/members-portal");
     } else {
       const result = await response.json();
-      console.error("Signup error:", result.error);
-      setError(result.error); // Set the error state
+      setError(result.error);
+      setIsLoading(false);
     }
   };
 
@@ -119,7 +123,7 @@ const RegisterForm = () => {
                       />
                     </FormControl>
 
-                    <FormMessage className="dark:text-red-300" />
+                    <FormMessage className="text-red-500 dark:text-red-300" />
                   </FormItem>
                 )}
               />
@@ -140,7 +144,7 @@ const RegisterForm = () => {
                       />
                     </FormControl>
 
-                    <FormMessage className="dark:text-red-300" />
+                    <FormMessage className="text-red-500 dark:text-red-300" />
                   </FormItem>
                 )}
               />
@@ -161,7 +165,7 @@ const RegisterForm = () => {
                       />
                     </FormControl>
 
-                    <FormMessage className="dark:text-red-300" />
+                    <FormMessage className="text-red-500 dark:text-red-300" />
                   </FormItem>
                 )}
               />
@@ -182,7 +186,7 @@ const RegisterForm = () => {
                       />
                     </FormControl>
 
-                    <FormMessage className="dark:text-red-300" />
+                    <FormMessage className="text-red-500 dark:text-red-300" />
                   </FormItem>
                 )}
               />
@@ -191,8 +195,18 @@ const RegisterForm = () => {
                   {error}
                 </div>
               )}
-              <Button className="w-full bg-slate-700 text-white hover:bg-gray-900 dark:bg-slate-600 dark:text-white  dark:hover:bg-slate-600">
-                Signup
+              <Button
+                disabled={isLoading}
+                className="w-full bg-slate-700 text-white hover:bg-gray-900 dark:bg-slate-600 dark:text-white dark:hover:bg-slate-600 disabled:opacity-70"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing up...
+                  </>
+                ) : (
+                  "Signup"
+                )}
               </Button>
             </form>
           </Form>
